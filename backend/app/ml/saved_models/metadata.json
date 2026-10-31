@@ -1,0 +1,61 @@
+{
+  "model_version": "v1.4-RF+IF-Industrial",
+  "trained_date": "2026-10-30",
+  "sample_size": 7500,
+  "features": [
+    "temperature",
+    "vibration",
+    "rpm",
+    "pressure",
+    "power",
+    "operating_hours"
+  ],
+  "classes": [
+    "Low Risk",
+    "Medium Risk",
+    "High Risk"
+  ],
+  "validation_accuracy": 0.998,
+  "feature_importances": {
+    "temperature": 0.24799910341625864,
+    "vibration": 0.35935153482414534,
+    "rpm": 0.0034442274433949885,
+    "pressure": 0.06299650924184312,
+    "power": 0.23458744240433438,
+    "operating_hours": 0.09162118267002355
+  },
+  "classification_report": {
+    "Low Risk": {
+      "precision": 0.9991119005328597,
+      "recall": 1.0,
+      "f1-score": 0.9995557529986673,
+      "support": 1125.0
+    },
+    "Medium Risk": {
+      "precision": 0.9960629921259843,
+      "recall": 0.9921568627450981,
+      "f1-score": 0.9941060903732809,
+      "support": 255.0
+    },
+    "High Risk": {
+      "precision": 0.9916666666666667,
+      "recall": 0.9916666666666667,
+      "f1-score": 0.9916666666666667,
+      "support": 120.0
+    },
+    "accuracy": 0.998,
+    "macro avg": {
+      "precision": 0.9956138531085035,
+      "recall": 0.9946078431372549,
+      "f1-score": 0.995109503346205,
+      "support": 1500.0
+    },
+    "weighted avg": {
+      "precision": 0.9979979673943954,
+      "recall": 0.998,
+      "f1-score": 0.9979981834457916,
+      "support": 1500.0
+    }
+  },
+  "disclaimer": "DEMO / SIMULATED DATA - Escorts Kubota Manufacturing Facilities Demo. Predictions are demonstration model outputs on synthetic training distributions."
+}
