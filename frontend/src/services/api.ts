@@ -1,51 +1,88 @@
-import { Machine, SensorReading, Alert, MaintenanceTask, DashboardStats, PredictionResult } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import {
+  Machine,
+  SensorReading,
+  Alert,
+  MaintenanceTask,
+  DashboardStats,
+  PredictionResult
+} from '../types';
 
-export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/stats`);
-  if (!res.ok) throw new Error('Failed to fetch dashboard stats');
-  return res.json();
+// Backend API URL
+const BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://smart-predictive-maintaninace-system.onrender.com'
+).replace(/\/+$/, '');
+
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `API Error ${response.status}: ${errorText || response.statusText}`
+    );
+  }
+
+  return response.json() as Promise<T>;
 }
 
-export async function fetchMachines(status?: string, search?: string): Promise<Machine[]> {
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  return apiRequest<DashboardStats>('/api/dashboard/stats');
+}
+
+export async function fetchMachines(
+  status?: string,
+  search?: string
+): Promise<Machine[]> {
   const params = new URLSearchParams();
+
   if (status && status !== 'all') params.append('status', status);
   if (search) params.append('search', search);
-  
-  const res = await fetch(`${BASE_URL}/api/machines?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to fetch machines');
-  return res.json();
+
+  const query = params.toString();
+  return apiRequest<Machine[]>(`/api/machines${query ? `?${query}` : ''}`);
 }
 
 export async function fetchMachineDetail(id: string): Promise<Machine> {
-  const res = await fetch(`${BASE_URL}/api/machines/${id}`);
-  if (!res.ok) throw new Error(`Failed to fetch machine ${id}`);
-  return res.json();
+  return apiRequest<Machine>(`/api/machines/${encodeURIComponent(id)}`);
 }
 
-export async function fetchMachineHistory(id: string, limit: number = 60): Promise<SensorReading[]> {
-  const res = await fetch(`${BASE_URL}/api/machines/${id}/history?limit=${limit}`);
-  if (!res.ok) throw new Error(`Failed to fetch history for ${id}`);
-  return res.json();
+export async function fetchMachineHistory(
+  id: string,
+  limit: number = 60
+): Promise<SensorReading[]> {
+  return apiRequest<SensorReading[]>(
+    `/api/machines/${encodeURIComponent(id)}/history?limit=${limit}`
+  );
 }
 
 export async function fetchMachineRecommendations(id: string): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/machines/${id}/recommendations`);
-  if (!res.ok) throw new Error(`Failed to fetch recommendations for ${id}`);
-  return res.json();
+  return apiRequest<any>(
+    `/api/machines/${encodeURIComponent(id)}/recommendations`
+  );
 }
 
 export async function fetchLiveSensors(): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/sensors/live`);
-  if (!res.ok) throw new Error('Failed to fetch live sensors');
-  return res.json();
+  return apiRequest<any>('/api/sensors/live');
 }
 
-export async function fetchPredictions(): Promise<{ disclaimer: string; model_architecture: string; predictions: PredictionResult[] }> {
-  const res = await fetch(`${BASE_URL}/api/predictions`);
-  if (!res.ok) throw new Error('Failed to fetch predictions');
-  return res.json();
+export async function fetchPredictions(): Promise<{
+  disclaimer: string;
+  model_architecture: string;
+  predictions: PredictionResult[];
+}> {
+  return apiRequest('/api/predictions');
 }
 
 export async function analyzeTelemetry(data: {
@@ -56,55 +93,68 @@ export async function analyzeTelemetry(data: {
   power: number;
   operating_hours: number;
 }): Promise<PredictionResult> {
-  const res = await fetch(`${BASE_URL}/api/predictions/analyze`, {
+  return apiRequest('/api/predictions/analyze', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error('Failed to run AI analysis');
-  return res.json();
 }
 
-export async function fetchAlerts(severity?: string, resolved?: boolean, machineId?: string): Promise<Alert[]> {
+export async function fetchAlerts(
+  severity?: string,
+  resolved?: boolean,
+  machineId?: string
+): Promise<Alert[]> {
   const params = new URLSearchParams();
+
   if (severity) params.append('severity', severity);
   if (resolved !== undefined) params.append('resolved', String(resolved));
   if (machineId) params.append('machine_id', machineId);
-  
-  const res = await fetch(`${BASE_URL}/api/alerts?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to fetch alerts');
-  return res.json();
+
+  const query = params.toString();
+  return apiRequest<Alert[]>(`/api/alerts${query ? `?${query}` : ''}`);
 }
 
-export async function acknowledgeAlert(alertId: string, operatorName: string = 'Control Room Engineer'): Promise<Alert> {
-  const res = await fetch(`${BASE_URL}/api/alerts/${alertId}/acknowledge`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ operator_name: operatorName })
-  });
-  if (!res.ok) throw new Error('Failed to acknowledge alert');
-  return res.json();
+export async function acknowledgeAlert(
+  alertId: string,
+  operatorName: string = 'Control Room Engineer'
+): Promise<Alert> {
+  return apiRequest<Alert>(
+    `/api/alerts/${encodeURIComponent(alertId)}/acknowledge`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ operator_name: operatorName })
+    }
+  );
 }
 
-export async function resolveAlert(alertId: string, operatorName: string = 'Maintenance Lead'): Promise<Alert> {
-  const res = await fetch(`${BASE_URL}/api/alerts/${alertId}/resolve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ operator_name: operatorName })
-  });
-  if (!res.ok) throw new Error('Failed to resolve alert');
-  return res.json();
+export async function resolveAlert(
+  alertId: string,
+  operatorName: string = 'Maintenance Lead'
+): Promise<Alert> {
+  return apiRequest<Alert>(
+    `/api/alerts/${encodeURIComponent(alertId)}/resolve`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ operator_name: operatorName })
+    }
+  );
 }
 
-export async function fetchMaintenanceTasks(status?: string, priority?: string, machineId?: string): Promise<MaintenanceTask[]> {
+export async function fetchMaintenanceTasks(
+  status?: string,
+  priority?: string,
+  machineId?: string
+): Promise<MaintenanceTask[]> {
   const params = new URLSearchParams();
+
   if (status && status !== 'ALL') params.append('status', status);
   if (priority && priority !== 'ALL') params.append('priority', priority);
   if (machineId) params.append('machine_id', machineId);
-  
-  const res = await fetch(`${BASE_URL}/api/maintenance?${params.toString()}`);
-  if (!res.ok) throw new Error('Failed to fetch maintenance tasks');
-  return res.json();
+
+  const query = params.toString();
+  return apiRequest<MaintenanceTask[]>(
+    `/api/maintenance${query ? `?${query}` : ''}`
+  );
 }
 
 export async function createMaintenanceTask(task: {
@@ -119,49 +169,52 @@ export async function createMaintenanceTask(task: {
   estimated_hours?: number;
   notes?: string;
 }): Promise<MaintenanceTask> {
-  const res = await fetch(`${BASE_URL}/api/maintenance`, {
+  return apiRequest<MaintenanceTask>('/api/maintenance', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(task)
   });
-  if (!res.ok) throw new Error('Failed to create maintenance task');
-  return res.json();
 }
 
-export async function updateMaintenanceTask(taskId: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask> {
-  const res = await fetch(`${BASE_URL}/api/maintenance/${taskId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates)
-  });
-  if (!res.ok) throw new Error('Failed to update maintenance task');
-  return res.json();
+export async function updateMaintenanceTask(
+  taskId: string,
+  updates: Partial<MaintenanceTask>
+): Promise<MaintenanceTask> {
+  return apiRequest<MaintenanceTask>(
+    `/api/maintenance/${encodeURIComponent(taskId)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    }
+  );
 }
 
 export async function startSimulation(): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/simulation/start`, { method: 'POST' });
-  return res.json();
+  return apiRequest<any>('/api/simulation/start', { method: 'POST' });
 }
 
 export async function pauseSimulation(): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/simulation/pause`, { method: 'POST' });
-  return res.json();
+  return apiRequest<any>('/api/simulation/pause', { method: 'POST' });
 }
 
-export async function triggerSimulationScenario(scenario: string, machineId: string = 'CNC-001', faultType: string = 'bearing_and_thermal'): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/simulation/scenario`, {
+export async function triggerSimulationScenario(
+  scenario: string,
+  machineId: string = 'CNC-001',
+  faultType: string = 'bearing_and_thermal'
+): Promise<any> {
+  return apiRequest<any>('/api/simulation/scenario', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scenario, machine_id: machineId, fault_type: faultType })
+    body: JSON.stringify({
+      scenario,
+      machine_id: machineId,
+      fault_type: faultType
+    })
   });
-  return res.json();
 }
 
 export async function resetSimulation(): Promise<any> {
-  const res = await fetch(`${BASE_URL}/api/simulation/reset`, { method: 'POST' });
-  return res.json();
+  return apiRequest<any>('/api/simulation/reset', { method: 'POST' });
 }
 
 export function getReportDownloadUrl(machineId: string): string {
-  return `${BASE_URL}/api/reports/${machineId}`;
+  return `${BASE_URL}/api/reports/${encodeURIComponent(machineId)}`;
 }
